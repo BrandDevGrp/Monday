@@ -169,8 +169,32 @@ h2 {
 }
 
 .header-actions {
+  align-items: center;
   display: flex;
   gap: 10px;
+}
+
+.connection-status {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.connection-status.connected {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.connection-status.error {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
 }
 
 .toolbar {
