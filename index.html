@@ -18,15 +18,11 @@
 
       <aside class="sidebar" aria-label="Workspace boards">
         <div>
-          <p class="eyebrow">Workspace</p>
-          <h1>Workroom</h1>
+          <p class="eyebrow" id="workspaceEyebrow">Workspace</p>
+          <h1 id="workspaceName">Workroom</h1>
         </div>
         <button class="new-board">+ New board</button>
-        <nav class="board-list">
-          <a class="selected" href="#">Product launch</a>
-          <a href="#">Marketing calendar</a>
-          <a href="#">Client onboarding</a>
-          <a href="#">Roadmap</a>
+        <nav class="board-list" id="boardList">
         </nav>
       </aside>
 
@@ -34,8 +30,8 @@
         <header class="board-header">
           <div>
             <p class="eyebrow">Main board</p>
-            <h2>Product launch</h2>
-            <p class="summary">Plan, assign, and track every launch task in one shared workspace.</p>
+            <h2 id="boardTitle">Product launch</h2>
+            <p class="summary" id="boardSummary">Plan, assign, and track every launch task in one shared workspace.</p>
           </div>
           <div class="header-actions">
             <span class="connection-status" id="connectionStatus">Checking monday</span>
@@ -57,12 +53,7 @@
         </section>
 
         <section class="board-table" aria-label="Launch tasks">
-          <div class="table-head">
-            <span>Task</span>
-            <span>Owner</span>
-            <span>Status</span>
-            <span>Due</span>
-            <span>Priority</span>
+          <div class="table-head" id="tableHead">
           </div>
           <div id="taskGroups"></div>
         </section>
