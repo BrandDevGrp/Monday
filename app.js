@@ -28,6 +28,7 @@ const groups = [
 const taskGroups = document.querySelector("#taskGroups");
 const searchInput = document.querySelector("#searchInput");
 const addTopTask = document.querySelector("#addTopTask");
+const connectionStatus = document.querySelector("#connectionStatus");
 const toast = document.querySelector("#toast");
 
 function initials(name) {
@@ -120,3 +121,26 @@ function addTask(groupIndex = 0) {
 searchInput.addEventListener("input", render);
 addTopTask.addEventListener("click", () => addTask(0));
 render();
+
+async function checkMondayConnection() {
+  if (!connectionStatus) {
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/monday/me");
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.error || "Connection failed");
+    }
+
+    connectionStatus.textContent = `monday connected: ${payload.user.name}`;
+    connectionStatus.classList.add("connected");
+  } catch (error) {
+    connectionStatus.textContent = "monday not connected";
+    connectionStatus.classList.add("error");
+  }
+}
+
+checkMondayConnection();
