@@ -5,6 +5,8 @@ const path = require("path");
 const PORT = Number(process.env.PORT || 4173);
 const PUBLIC_DIR = __dirname;
 const MONDAY_API_URL = "https://api.monday.com/v2";
+const LIVENET_WORKSPACE_ID = "9452673";
+const LIVENET_WORKSPACE_NAME = "LiveNet";
 
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
@@ -87,6 +89,78 @@ async function queryMonday(query, variables = {}) {
   return payload.data;
 }
 
+const boardFields = `
+  id
+  name
+  state
+  board_kind
+  updated_at
+  description
+  columns { id title type settings_str }
+  groups { id title color position }
+  items_page(limit: 100) {
+    cursor
+    items {
+      id
+      name
+      group { id title }
+      created_at
+      updated_at
+      column_values { id type text value column { id title type } }
+    }
+  }
+`;
+
+const itemPageFields = `
+  cursor
+  items {
+    id
+    name
+    group { id title }
+    created_at
+    updated_at
+    column_values { id type text value column { id title type } }
+  }
+`;
+
+async function fetchAllItems(firstPage) {
+  const items = [...firstPage.items];
+  let cursor = firstPage.cursor;
+
+  while (cursor) {
+    const data = await queryMonday(`query ($cursor: String!) { next_items_page(cursor: $cursor, limit: 100) { ${itemPageFields} } }`, {
+      cursor
+    });
+    items.push(...data.next_items_page.items);
+    cursor = data.next_items_page.cursor;
+  }
+
+  return items;
+}
+
+async function fetchLiveNetWorkspace() {
+  const data = await queryMonday(`query ($workspaceIds: [ID!]) { boards(workspace_ids: $workspaceIds, limit: 100) { ${boardFields} } }`, {
+    workspaceIds: [LIVENET_WORKSPACE_ID]
+  });
+
+  const boards = [];
+  for (const board of data.boards) {
+    boards.push({
+      ...board,
+      items: await fetchAllItems(board.items_page),
+      items_page: undefined
+    });
+  }
+
+  return {
+    workspace: {
+      id: LIVENET_WORKSPACE_ID,
+      name: LIVENET_WORKSPACE_NAME
+    },
+    boards
+  };
+}
+
 async function handleApi(request, response) {
   if (request.method !== "GET") {
     sendJson(response, 405, { error: "Method not allowed" });
@@ -103,6 +177,12 @@ async function handleApi(request, response) {
     if (request.url === "/api/monday/boards") {
       const data = await queryMonday("query { boards(limit: 25) { id name state board_kind updated_at } }");
       sendJson(response, 200, { boards: data.boards });
+      return;
+    }
+
+    if (request.url === "/api/monday/workspaces/livenet") {
+      const data = await fetchLiveNetWorkspace();
+      sendJson(response, 200, data);
       return;
     }
 
