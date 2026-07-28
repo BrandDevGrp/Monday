@@ -1,44 +1,59 @@
-const statuses = [
-  { label: "Working on it", className: "status-working" },
-  { label: "Done", className: "status-done" },
-  { label: "Stuck", className: "status-stuck" }
-];
-
-const groups = [
+const fallbackBoards = [
   {
-    name: "Strategy",
-    color: "#2563eb",
-    tasks: [
-      { name: "Confirm launch goals", owner: "Maya", status: 1, due: "Aug 2", priority: "High" },
-      { name: "Finalize channel plan", owner: "Eli", status: 0, due: "Aug 5", priority: "Medium" },
-      { name: "Approve pricing notes", owner: "Noah", status: 2, due: "Aug 7", priority: "High" }
-    ]
-  },
-  {
-    name: "Creative production",
-    color: "#16a34a",
-    tasks: [
-      { name: "Write email sequence", owner: "Ari", status: 0, due: "Aug 9", priority: "Medium" },
-      { name: "Export product demo cuts", owner: "Jules", status: 1, due: "Aug 10", priority: "Low" },
-      { name: "QA landing page copy", owner: "Maya", status: 0, due: "Aug 12", priority: "High" }
+    id: "demo",
+    name: "Product launch",
+    columns: [
+      { id: "owner", title: "Owner", type: "people" },
+      { id: "status", title: "Status", type: "status" },
+      { id: "due", title: "Due", type: "date" },
+      { id: "priority", title: "Priority", type: "status" }
+    ],
+    groups: [
+      { id: "strategy", title: "Strategy", color: "#2563eb" },
+      { id: "creative", title: "Creative production", color: "#16a34a" }
+    ],
+    items: [
+      {
+        id: "demo-1",
+        name: "Confirm launch goals",
+        group: { id: "strategy", title: "Strategy" },
+        valuesByColumnId: { owner: "Maya", status: "Done", due: "Aug 2", priority: "High" }
+      },
+      {
+        id: "demo-2",
+        name: "Finalize channel plan",
+        group: { id: "strategy", title: "Strategy" },
+        valuesByColumnId: { owner: "Eli", status: "Working on it", due: "Aug 5", priority: "Medium" }
+      },
+      {
+        id: "demo-3",
+        name: "Write email sequence",
+        group: { id: "creative", title: "Creative production" },
+        valuesByColumnId: { owner: "Ari", status: "Working on it", due: "Aug 9", priority: "Medium" }
+      }
     ]
   }
 ];
 
+const state = {
+  workspace: { id: "demo", name: "Workroom" },
+  boards: fallbackBoards,
+  activeBoardId: fallbackBoards[0].id,
+  query: "",
+  liveImported: false
+};
+
+const workspaceName = document.querySelector("#workspaceName");
+const workspaceEyebrow = document.querySelector("#workspaceEyebrow");
+const boardTitle = document.querySelector("#boardTitle");
+const boardSummary = document.querySelector("#boardSummary");
+const boardList = document.querySelector("#boardList");
 const taskGroups = document.querySelector("#taskGroups");
+const tableHead = document.querySelector("#tableHead");
 const searchInput = document.querySelector("#searchInput");
 const addTopTask = document.querySelector("#addTopTask");
 const connectionStatus = document.querySelector("#connectionStatus");
 const toast = document.querySelector("#toast");
-
-function initials(name) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
 
 function showToast(message) {
   toast.textContent = message;
@@ -46,101 +61,186 @@ function showToast(message) {
   window.setTimeout(() => toast.classList.remove("show"), 1500);
 }
 
-function render() {
-  const query = searchInput.value.trim().toLowerCase();
+function getActiveBoard() {
+  return state.boards.find((board) => board.id === state.activeBoardId) || state.boards[0];
+}
+
+function getGridTemplate(board) {
+  const fieldColumns = board.columns.map(() => "minmax(150px, 1fr)").join(" ");
+  return `minmax(260px, 1.4fr) ${fieldColumns || "minmax(150px, 1fr)"}`;
+}
+
+function normalizeImportedBoard(board) {
+  return {
+    ...board,
+    columns: board.columns || [],
+    groups: board.groups || [],
+    items: (board.items || []).map((item) => {
+      const valuesByColumnId = {};
+      (item.column_values || []).forEach((value) => {
+        valuesByColumnId[value.id] = value.text || "";
+      });
+
+      return {
+        ...item,
+        valuesByColumnId
+      };
+    })
+  };
+}
+
+function valueClass(value) {
+  const normalized = String(value || "").toLowerCase();
+  if (["done", "complete", "completed", "approved", "yes"].includes(normalized)) {
+    return "status-done";
+  }
+  if (["stuck", "blocked", "needs help", "overdue"].includes(normalized)) {
+    return "status-stuck";
+  }
+  if (normalized.includes("working") || normalized.includes("progress")) {
+    return "status-working";
+  }
+  return "";
+}
+
+function renderBoardList() {
+  boardList.innerHTML = "";
+  state.boards.forEach((board) => {
+    const button = document.createElement("button");
+    button.className = board.id === state.activeBoardId ? "selected" : "";
+    button.type = "button";
+    button.textContent = board.name;
+    button.addEventListener("click", () => {
+      state.activeBoardId = board.id;
+      render();
+    });
+    boardList.appendChild(button);
+  });
+}
+
+function renderTableHead(board) {
+  tableHead.style.gridTemplateColumns = getGridTemplate(board);
+  tableHead.innerHTML = "<span>Item</span>";
+  board.columns.forEach((column) => {
+    const header = document.createElement("span");
+    header.textContent = column.title;
+    header.title = `${column.title} (${column.type})`;
+    tableHead.appendChild(header);
+  });
+}
+
+function renderRows(board) {
+  const query = state.query.toLowerCase();
   taskGroups.innerHTML = "";
 
-  groups.forEach((group, groupIndex) => {
-    const visibleTasks = group.tasks.filter((task) => {
-      return [task.name, task.owner, task.priority, statuses[task.status].label]
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
-    });
+  const visibleItems = board.items.filter((item) => {
+    const searchable = [item.name, item.group?.title, ...Object.values(item.valuesByColumnId || {})]
+      .join(" ")
+      .toLowerCase();
+    return searchable.includes(query);
+  });
 
-    if (!visibleTasks.length) {
+  if (!visibleItems.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = query ? "No matching LiveNet items" : "No items on this board";
+    taskGroups.appendChild(empty);
+    return;
+  }
+
+  const groups = board.groups.length
+    ? board.groups
+    : [{ id: "ungrouped", title: "Items", color: "#2563eb" }];
+
+  groups.forEach((group) => {
+    const groupItems = visibleItems.filter((item) => (item.group?.id || "ungrouped") === group.id);
+    if (!groupItems.length) {
       return;
     }
 
     const title = document.createElement("div");
     title.className = "group-title";
-    title.innerHTML = `<span class="group-dot" style="background:${group.color}"></span><span>${group.name}</span>`;
+    title.innerHTML = `<span class="group-dot" style="background:${group.color || "#2563eb"}"></span><span>${group.title}</span>`;
     taskGroups.appendChild(title);
 
-    visibleTasks.forEach((task) => {
+    groupItems.forEach((item) => {
       const row = document.createElement("div");
       row.className = "task-row";
+      row.style.gridTemplateColumns = getGridTemplate(board);
 
-      const currentStatus = statuses[task.status];
-      row.innerHTML = `
-        <label>
-          <input class="task-name" value="${task.name}" aria-label="Task name" />
-        </label>
-        <span class="owner"><span class="avatar">${initials(task.owner)}</span>${task.owner}</span>
-        <span><button class="pill ${currentStatus.className}" type="button">${currentStatus.label}</button></span>
-        <span>${task.due}</span>
-        <span class="priority ${task.priority.toLowerCase()}">${task.priority}</span>
-      `;
+      const itemName = document.createElement("span");
+      itemName.className = "item-name";
+      itemName.textContent = item.name;
+      row.appendChild(itemName);
 
-      const nameInput = row.querySelector(".task-name");
-      nameInput.addEventListener("input", (event) => {
-        task.name = event.target.value;
-      });
+      board.columns.forEach((column) => {
+        const cell = document.createElement("span");
+        const value = item.valuesByColumnId?.[column.id] || "";
+        const statusClass = column.type === "status" ? valueClass(value) : "";
 
-      const statusButton = row.querySelector(".pill");
-      statusButton.addEventListener("click", () => {
-        task.status = (task.status + 1) % statuses.length;
-        render();
+        if (statusClass && value) {
+          const pill = document.createElement("span");
+          pill.className = `pill ${statusClass}`;
+          pill.textContent = value;
+          cell.appendChild(pill);
+        } else {
+          cell.textContent = value || "-";
+        }
+
+        row.appendChild(cell);
       });
 
       taskGroups.appendChild(row);
     });
-
-    const addRow = document.createElement("button");
-    addRow.className = "group-title";
-    addRow.type = "button";
-    addRow.textContent = "+ Add task";
-    addRow.addEventListener("click", () => addTask(groupIndex));
-    taskGroups.appendChild(addRow);
   });
 }
 
-function addTask(groupIndex = 0) {
-  groups[groupIndex].tasks.push({
-    name: "New launch task",
-    owner: "Maya",
-    status: 0,
-    due: "Aug 15",
-    priority: "Medium"
-  });
-  searchInput.value = "";
-  render();
-  showToast("Task added");
+function render() {
+  const board = getActiveBoard();
+  workspaceName.textContent = state.workspace.name;
+  workspaceEyebrow.textContent = state.liveImported ? "monday workspace" : "Workspace";
+  boardTitle.textContent = board.name;
+  boardSummary.textContent = state.liveImported
+    ? `${board.items.length} items, ${board.columns.length} fields copied from monday.com`
+    : "Plan, assign, and track every launch task in one shared workspace.";
+
+  renderBoardList();
+  renderTableHead(board);
+  renderRows(board);
 }
 
-searchInput.addEventListener("input", render);
-addTopTask.addEventListener("click", () => addTask(0));
-render();
-
-async function checkMondayConnection() {
-  if (!connectionStatus) {
-    return;
-  }
-
+async function importLiveNetWorkspace() {
   try {
-    const response = await fetch("/api/monday/me");
+    const response = await fetch("/api/monday/workspaces/livenet");
     const payload = await response.json();
 
     if (!response.ok) {
-      throw new Error(payload.error || "Connection failed");
+      throw new Error(payload.error || "Import failed");
     }
 
-    connectionStatus.textContent = `monday connected: ${payload.user.name}`;
+    state.workspace = payload.workspace;
+    state.boards = payload.boards.map(normalizeImportedBoard);
+    state.activeBoardId = state.boards[0]?.id || fallbackBoards[0].id;
+    state.liveImported = true;
+    connectionStatus.textContent = `LiveNet imported: ${state.boards.length} boards`;
     connectionStatus.classList.add("connected");
+    render();
   } catch (error) {
-    connectionStatus.textContent = "monday not connected";
+    connectionStatus.textContent = "LiveNet import failed";
     connectionStatus.classList.add("error");
+    showToast("LiveNet import failed");
   }
 }
 
-checkMondayConnection();
+function addTask() {
+  showToast(state.liveImported ? "Live monday boards are read-only here" : "Task added");
+}
+
+searchInput.addEventListener("input", (event) => {
+  state.query = event.target.value;
+  render();
+});
+
+addTopTask.addEventListener("click", addTask);
+render();
+importLiveNetWorkspace();
