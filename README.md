@@ -23,3 +23,7 @@ Keep monday.com API credentials out of Git. Add them only to a local `.env.local
 ```bash
 MONDAY_API_TOKEN=your_token_here
 ```
+
+## LiveNet import
+
+The app imports the LiveNet monday.com workspace at runtime through the local Node server. Workspace data is not committed to this public repository.
