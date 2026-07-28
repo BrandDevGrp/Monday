@@ -142,15 +142,17 @@ h2 {
   gap: 8px;
 }
 
-.board-list a {
+.board-list button {
+  border: 0;
   border-radius: 8px;
+  background: transparent;
   color: var(--ink);
   padding: 10px 12px;
-  text-decoration: none;
+  text-align: left;
 }
 
-.board-list a.selected,
-.board-list a:hover {
+.board-list button.selected,
+.board-list button:hover {
   background: #eef4ff;
   color: #1746a2;
 }
@@ -239,7 +241,7 @@ h2 {
 }
 
 .board-table {
-  overflow: hidden;
+  overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
@@ -248,7 +250,6 @@ h2 {
 .table-head,
 .task-row {
   display: grid;
-  grid-template-columns: minmax(230px, 1.4fr) minmax(130px, 0.6fr) 140px 130px 120px;
   align-items: center;
   min-width: 820px;
 }
@@ -299,6 +300,11 @@ h2 {
   color: var(--ink);
 }
 
+.item-name {
+  color: var(--ink);
+  font-weight: 700;
+}
+
 .owner {
   display: flex;
   align-items: center;
@@ -322,12 +328,21 @@ h2 {
 .pill {
   display: inline-flex;
   justify-content: center;
-  min-width: 96px;
+  max-width: 100%;
+  min-width: 84px;
   border: 0;
   border-radius: 8px;
   padding: 7px 10px;
   color: #fff;
   font-weight: 800;
+  white-space: normal;
+}
+
+.empty-state {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  padding: 20px;
+  font-weight: 700;
 }
 
 .status-working {
