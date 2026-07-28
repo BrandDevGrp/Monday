@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Workroom Project Board</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="rail" aria-label="Global navigation">
+        <div class="brand-mark" aria-label="Workroom">W</div>
+        <button class="rail-button active" aria-label="Boards">B</button>
+        <button class="rail-button" aria-label="Inbox">I</button>
+        <button class="rail-button" aria-label="Dashboards">D</button>
+        <button class="rail-button" aria-label="Automations">A</button>
+      </aside>
+
+      <aside class="sidebar" aria-label="Workspace boards">
+        <div>
+          <p class="eyebrow">Workspace</p>
+          <h1>Workroom</h1>
+        </div>
+        <button class="new-board">+ New board</button>
+        <nav class="board-list">
+          <a class="selected" href="#">Product launch</a>
+          <a href="#">Marketing calendar</a>
+          <a href="#">Client onboarding</a>
+          <a href="#">Roadmap</a>
+        </nav>
+      </aside>
+
+      <main class="board">
+        <header class="board-header">
+          <div>
+            <p class="eyebrow">Main board</p>
+            <h2>Product launch</h2>
+            <p class="summary">Plan, assign, and track every launch task in one shared workspace.</p>
+          </div>
+          <div class="header-actions">
+            <button class="ghost-button">Invite</button>
+            <button class="primary-button" id="addTopTask">+ Add task</button>
+          </div>
+        </header>
+
+        <section class="toolbar" aria-label="Board tools">
+          <div class="tabs" role="tablist" aria-label="Views">
+            <button class="tab active" type="button">Table</button>
+            <button class="tab" type="button">Kanban</button>
+            <button class="tab" type="button">Timeline</button>
+          </div>
+          <label class="search">
+            <span>Search</span>
+            <input id="searchInput" type="search" placeholder="Filter tasks" />
+          </label>
+        </section>
+
+        <section class="board-table" aria-label="Launch tasks">
+          <div class="table-head">
+            <span>Task</span>
+            <span>Owner</span>
+            <span>Status</span>
+            <span>Due</span>
+            <span>Priority</span>
+          </div>
+          <div id="taskGroups"></div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">Task added</div>
+    <script src="app.js"></script>
+  </body>
+</html>
